@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from core.models import ScanRequest
 from core.orchestrator import Orchestrator
 
@@ -15,6 +15,16 @@ def scan():
     scan_request = ScanRequest(target=data["target"], agents=data["agents"])
     results = orchestrator.run_scan(scan_request)
     return jsonify([result.__dict__ for result in results])
+
+
+@app.route("/")
+def serve_frontend():
+    return send_from_directory("frontend", "index.html")
+
+
+@app.route("/<path:path>")
+def serve_static(path):
+    return send_from_directory("frontend", path)
 
 
 if __name__ == "__main__":

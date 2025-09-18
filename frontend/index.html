@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Security Agency Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Example third-party UI library: Flowbite -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-100 text-gray-900">
+    <nav class="bg-blue-600 p-4">
+      <div class="container mx-auto flex justify-between items-center">
+        <h1 class="text-white text-xl font-bold">Security Agency</h1>
+        <button
+          class="bg-white text-blue-600 px-4 py-2 rounded hover:bg-gray-200"
+        >
+          Dashboard
+        </button>
+      </div>
+    </nav>
+
+    <main class="container mx-auto mt-10">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div
+          class="p-6 bg-white rounded-lg shadow hover:shadow-lg transition"
+        >
+          <h2 class="text-lg font-semibold mb-2">Nmap Agent</h2>
+          <p class="text-gray-600">Run network scans and view results.</p>
+          <button
+            onclick="runScan('nmap')"
+            class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Run Scan
+          </button>
+        </div>
+
+        <div
+          class="p-6 bg-white rounded-lg shadow hover:shadow-lg transition"
+        >
+          <h2 class="text-lg font-semibold mb-2">Nikto Agent</h2>
+          <p class="text-gray-600">Perform web vulnerability scans.</p>
+          <button
+            onclick="runScan('nikto')"
+            class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Run Scan
+          </button>
+        </div>
+
+        <div
+          class="p-6 bg-white rounded-lg shadow hover:shadow-lg transition"
+        >
+          <h2 class="text-lg font-semibold mb-2">SQLMap Agent</h2>
+          <p class="text-gray-600">Detect and exploit SQL injection flaws.</p>
+          <button
+            onclick="runScan('sqlmap')"
+            class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Run Scan
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Flowbite JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+    <script>
+      async function runScan(agent) {
+        const target = prompt("Enter target (e.g., http://example.com):");
+        if (!target) return;
+        try {
+          const response = await fetch("/scan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ target, agents: [agent] }),
+          });
+          const data = await response.json();
+          alert("Scan Results: " + JSON.stringify(data, null, 2));
+        } catch (err) {
+          alert("Error: " + err.message);
+        }
+      }
+    </script>
+  </body>
+</html>
