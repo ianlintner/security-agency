@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "security-scanner"
+version = "0.1.0"
+description = "A Flask-based security scanner integrating nmap, nikto, and sqlmap"
+authors = ["Your Name <you@example.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "core" }, { include = "agents" }, { include = "." }]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+flask = "^3.0.0"
+pydantic = "^2.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pylint = "^3.0.0"
+mypy = "^1.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
