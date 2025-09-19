@@ -4,6 +4,7 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 
 from core.decision_engine import DecisionEngine
 from core.models import ScanRequest
+from core.storage import Storage
 from core.orchestrator import Orchestrator
 from core.recommendation_engine import RecommendationEngine
 
@@ -11,6 +12,7 @@ app = Flask(__name__)
 orchestrator = Orchestrator()
 decision_engine = DecisionEngine()
 recommendation_engine = RecommendationEngine(decision_engine)
+storage = Storage()
 
 
 @app.route("/scan", methods=["POST"])
@@ -79,6 +81,27 @@ def get_recommendations():
         recommendation_engine.generate_recommendations(data["scan_results"])
     )
     return jsonify(recommendations)
+
+
+@app.route("/history", methods=["GET"])
+def list_history():
+    limit = int(request.args.get("limit", 50))
+    history = storage.list_scan_history(limit=limit)
+    return jsonify(history)
+
+
+@app.route("/results/<request_id>", methods=["GET"])
+def get_results(request_id):
+    results = storage.get_scan_results(request_id)
+    return jsonify(results)
+
+
+@app.route("/report/<result_id>", methods=["GET"])
+def get_report(result_id):
+    report = storage.get_scan_report(result_id)
+    if not report:
+        return jsonify({"error": "Report not found"}), 404
+    return jsonify(report)
 
 
 if __name__ == "__main__":

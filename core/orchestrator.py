@@ -68,6 +68,7 @@ class Orchestrator:  # pylint: disable=too-few-public-methods
             )
 
         results: List[ScanResult] = []
+        self.storage.save_scan_request(request)
 
         async def execute_step(step: WorkflowStep, retries: int = 0):
             async with self.semaphore:

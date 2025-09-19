@@ -137,3 +137,27 @@ class Storage:
                 .where(self.workflows.c.id == workflow_id)
                 .values(state=state)
             )
+
+    def list_scan_history(self, limit: int = 50):
+        """Return recent scan requests with basic metadata."""
+        with self.engine.begin() as conn:
+            result = conn.execute(
+                self.scan_requests.select().order_by(self.scan_requests.c.id.desc()).limit(limit)
+            )
+            return [dict(row._mapping) for row in result]
+
+    def get_scan_results(self, request_id: str):
+        """Return all results for a given scan request."""
+        with self.engine.begin() as conn:
+            result = conn.execute(
+                self.scan_results.select().where(self.scan_results.c.request_id == request_id)
+            )
+            return [dict(row._mapping) for row in result]
+
+    def get_scan_report(self, result_id: str):
+        """Return a single scan result/report by ID."""
+        with self.engine.begin() as conn:
+            result = conn.execute(
+                self.scan_results.select().where(self.scan_results.c.id == result_id)
+            ).first()
+            return dict(result._mapping) if result else None

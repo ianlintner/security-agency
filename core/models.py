@@ -63,3 +63,23 @@ class AgentDecision:
     workflow_id: str
     next_steps: List[WorkflowStep]
     reasoning: str
+
+
+@dataclass
+class ScanHistoryEntry:
+    id: str
+    target: str
+    requested_agents: Optional[List[str]]
+    priority: int
+    workflow_id: Optional[str]
+
+
+@dataclass
+class ScanReport:
+    id: str
+    request_id: str
+    agent: str
+    status: str
+    output: Dict[str, Any]
+    analysis: Optional[Dict[str, Any]]
+    metadata: Optional[Dict[str, Any]]
