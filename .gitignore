@@ -54,3 +54,4 @@ site/
 .dmypy.json
 .dmypy/
 .pyre/
+.idea
