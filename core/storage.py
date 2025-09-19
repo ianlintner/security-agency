@@ -61,7 +61,8 @@ class Storage:
 
     def save_workflow(self, workflow: Workflow) -> None:
         with self.engine.begin() as conn:
-            conn.execute(self.workflows.insert().values(**workflow.__dict__))
+            data = {c.name: getattr(workflow, c.name) for c in self.workflows.columns if hasattr(workflow, c.name)}
+            conn.execute(self.workflows.insert().values(**data))
 
     def save_scan_request(self, request: ScanRequest) -> None:
         with self.engine.begin() as conn:

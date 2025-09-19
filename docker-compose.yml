@@ -21,7 +21,8 @@ services:
     depends_on:
       - db
     environment:
-      DATABASE_URL: postgres://security_user:security_pass@db:5432/security_db
+      DATABASE_URL: postgresql://security_user:security_pass@db:5432/security_db
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     ports:
       - "8000:8000"
     volumes:

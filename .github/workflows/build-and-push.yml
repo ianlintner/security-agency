@@ -110,6 +110,7 @@ jobs:
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
           build-args: |
             DATABASE_URL=${{ secrets.DATABASE_URL }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
