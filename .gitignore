@@ -47,7 +47,6 @@ site/
 .pytest_cache/
 .tox/
 .coverage
-.coverage.*
 *.cover
 *.py,cover
 .hypothesis/
