@@ -1,6 +1,7 @@
 import os
 from typing import List
 from sqlalchemy import create_engine, Table, Column, String, JSON, MetaData
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import Engine
 from core.models import Workflow, WorkflowStep, ScanRequest, ScanResult
@@ -62,7 +63,13 @@ class Storage:
     def save_workflow(self, workflow: Workflow) -> None:
         with self.engine.begin() as conn:
             data = {c.name: getattr(workflow, c.name) for c in self.workflows.columns if hasattr(workflow, c.name)}
-            conn.execute(self.workflows.insert().values(**data))
+            stmt = insert(self.workflows).values(**data)
+            update_data = {k: v for k, v in data.items() if k != "id"}
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["id"],
+                set_=update_data
+            )
+            conn.execute(stmt)
 
     def save_scan_request(self, request: ScanRequest) -> None:
         with self.engine.begin() as conn:
