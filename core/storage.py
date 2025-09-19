@@ -66,11 +66,13 @@ class Storage:
 
     def save_scan_request(self, request: ScanRequest) -> None:
         with self.engine.begin() as conn:
-            conn.execute(self.scan_requests.insert().values(**request.__dict__))
+            data = {c.name: getattr(request, c.name) for c in self.scan_requests.columns if hasattr(request, c.name)}
+            conn.execute(self.scan_requests.insert().values(**data))
 
     def save_scan_result(self, result: ScanResult) -> None:
         with self.engine.begin() as conn:
-            conn.execute(self.scan_results.insert().values(**result.__dict__))
+            data = {c.name: getattr(result, c.name) for c in self.scan_results.columns if hasattr(result, c.name)}
+            conn.execute(self.scan_results.insert().values(**data))
 
     def update_workflow_state(self, workflow_id: str, state: str) -> None:
         with self.engine.begin() as conn:
