@@ -1,0 +1,183 @@
+name: Build and Push Docker Image dependent on CI github task
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main, develop, staging]
+    types: [completed]
+  push:
+    tags:
+      - "v*"
+
+env:
+  REGISTRY: us-central1-docker.pkg.dev
+  PROJECT_ID: kame-457417
+  REPOSITORY: kame-house-images
+  IMAGE_NAME: security-agency
+
+jobs:
+  build-and-push:
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+
+    steps:
+      - name: Checkout repository (from CI run)
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Checkout repository
+        if: github.event_name != 'workflow_run'
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Configure Docker to use gcloud as credential helper
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      - name: Generate image tags
+        id: tags
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          TAGS=""
+          TIMESTAMP=$(date +%s)
+
+          if [ "${EVENT_NAME}" = "workflow_run" ] && [ -n "${HEAD_SHA}" ]; then
+            COMMIT_SHA=$(echo "${HEAD_SHA}" | cut -c1-7)
+          else
+            COMMIT_SHA=$(git rev-parse --short HEAD)
+          fi
+
+          TAGS="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${COMMIT_SHA}"
+
+          if [ "${EVENT_NAME}" = "workflow_run" ]; then
+            BRANCH_NAME=$(echo "${HEAD_BRANCH}" | sed 's/[^a-zA-Z0-9._-]/-/g')
+            FLUX_TAG="${BRANCH_NAME}-${COMMIT_SHA}-${TIMESTAMP}"
+            TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${FLUX_TAG}"
+            TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${BRANCH_NAME}"
+            if [[ "${HEAD_BRANCH}" == "main" ]]; then
+              TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest"
+            fi
+          fi
+
+          if [[ "${EVENT_NAME}" == "push" && "${REF}" == refs/tags/* ]]; then
+            TAG_NAME="${REF_NAME}"
+            TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${TAG_NAME}"
+            if [[ ${TAG_NAME} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              VERSION=${TAG_NAME#v}
+              MAJOR=$(echo ${VERSION} | cut -d. -f1)
+              MINOR=$(echo ${VERSION} | cut -d. -f1-2)
+              TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+              TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${MAJOR}"
+              TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${MINOR}"
+            fi
+          fi
+
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "Generated tags: ${TAGS}"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=${{ env.IMAGE_NAME }}
+            org.opencontainers.image.description=Security Agency application
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+          build-args: |
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate deployment manifest
+        if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main') || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+        run: |
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          IMAGE_TAG="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${COMMIT_SHA}"
+
+          cat > deployment-image-update.yaml << EOF
+          images:
+          - name: security-agency
+            newName: ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}
+            newTag: ${COMMIT_SHA}
+          EOF
+
+      - name: Upload deployment info
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-info
+          path: deployment-image-update.yaml
+          retention-days: 30
+
+      - name: Set up kubectl
+        if: github.event_name != 'pull_request'
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: "latest"
+
+      - name: Install GKE auth plugin
+        if: github.event_name != 'pull_request'
+        run: |
+          gcloud components install gke-gcloud-auth-plugin
+
+      - name: Configure kubectl
+        if: github.event_name != 'pull_request'
+        run: |
+          gcloud container clusters get-credentials kame-house --region=us-central1 --project=${{ env.PROJECT_ID }}
+
+      - name: Notify Flux CD
+        if: github.event_name != 'pull_request'
+        env:
+          BRANCH_NAME: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
+        run: |
+          echo "### 🚀 Image Ready for Flux CD" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image has been pushed to registry and is ready for Flux CD to deploy**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Flux CD will automatically:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Detect the new image with timestamp-based tag" >> $GITHUB_STEP_SUMMARY
+          echo "2. Update the deployment manifests in Git" >> $GITHUB_STEP_SUMMARY
+          echo "3. Deploy to environments based on branch (dev → staging → prod)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${BRANCH_NAME}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Image scan summary
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "### 🐳 Docker Image Built Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tags:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.tags.outputs.tags }}" | tr ',' '\n' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** \`${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The image has been pushed to Google Artifact Registry and deployed automatically." >> $GITHUB_STEP_SUMMARY
