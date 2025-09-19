@@ -1,10 +1,13 @@
-from typing import List
-from langchain_openai.chat_models import ChatOpenAI
+from typing import List  # type: ignore
+import json
+
 from langchain.prompts import ChatPromptTemplate
-from core.models import Workflow, ScanResult, AgentDecision, WorkflowStep
+from langchain_openai.chat_models import ChatOpenAI
+
+from core.models import AgentDecision, ScanResult, Workflow, WorkflowStep
 
 
-class DecisionEngine:
+class DecisionEngine:  # pylint: disable=too-few-public-methods
     """
     LangChain-based decision engine for orchestrating workflow steps.
     """
@@ -29,22 +32,40 @@ class DecisionEngine:
             """
         )
 
-    def decide_next_steps(self, workflow: Workflow, results: List[ScanResult]) -> AgentDecision:
-        scan_results_str = "\n".join([f"{r.agent}: {r.status}, output={r.output}" for r in results])
+    def decide_next_steps(
+        self, workflow: Workflow, results: List[ScanResult]
+    ) -> AgentDecision:
+        scan_results_str = "\n".join(
+            [f"{r.agent}: {r.status}, output={r.output}" for r in results]
+        )
 
-        chain = self.prompt | self.llm
-        response = chain.invoke({
-            "workflow_context": workflow.context,
-            "scan_results": scan_results_str
-        })
+        chain = self.llm
+        response = chain.invoke(
+            {"workflow_context": workflow.context, "scan_results": scan_results_str}
+        )
 
-        # For now, assume response is structured JSON-like text
-        # In production, add parsing/validation
+        # Attempt to parse structured response
         reasoning = response.content
-        next_steps: List[WorkflowStep] = []  # Placeholder, would parse from response
+        next_steps: List[WorkflowStep] = []
+
+        try:
+            parsed = json.loads(response.content)
+            for step in parsed.get("next_steps", []):
+                next_steps.append(
+                    WorkflowStep(
+                        id=f"{workflow.id}-{step['agent']}-{len(next_steps)}",
+                        workflow_id=workflow.id,
+                        agent=step["agent"],
+                        input=step.get("input", {}),
+                        status="pending",
+                        dependencies=step.get("dependencies", []),
+                    )
+                )
+            reasoning = parsed.get("reasoning", reasoning)
+        except Exception:  # pylint: disable=broad-exception-caught
+            # fallback to raw text reasoning
+            pass
 
         return AgentDecision(
-            workflow_id=workflow.id,
-            next_steps=next_steps,
-            reasoning=reasoning
+            workflow_id=workflow.id, next_steps=next_steps, reasoning=reasoning
         )

@@ -12,6 +12,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     nmap \
     sqlmap \
+    wpscan \
+    dirb \
+    sublist3r \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Nikto manually since it's not in Debian repos

@@ -2,7 +2,7 @@ name: Build and Push Docker Image dependent on CI github task
 
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["CI/CD"]
     branches: [main, develop, staging]
     types: [completed]
   push:

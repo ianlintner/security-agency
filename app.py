@@ -1,9 +1,16 @@
-from flask import Flask, request, jsonify, send_from_directory
+# import json
+
+from flask import Flask, Response, jsonify, request, send_from_directory
+
+from core.decision_engine import DecisionEngine
 from core.models import ScanRequest
 from core.orchestrator import Orchestrator
+from core.recommendation_engine import RecommendationEngine
 
 app = Flask(__name__)
 orchestrator = Orchestrator()
+decision_engine = DecisionEngine()
+recommendation_engine = RecommendationEngine(decision_engine)
 
 
 @app.route("/scan", methods=["POST"])
@@ -17,9 +24,11 @@ def scan():
         target=data["target"],
         requested_agents=data.get("agents", []),
         priority=data.get("priority", 0),
-        workflow_id=data.get("workflow_id")
+        workflow_id=data.get("workflow_id"),
     )
-    results = orchestrator.run_scan(scan_request)
+    import asyncio  # pylint: disable=import-outside-toplevel
+
+    results = asyncio.run(orchestrator.run_scan_async(scan_request))
     return jsonify([result.__dict__ for result in results])
 
 
@@ -37,6 +46,39 @@ def serve_frontend():
 @app.route("/<path:path>")
 def serve_static(path):
     return send_from_directory("frontend", path)
+
+
+@app.route("/request", methods=["POST"])
+def handle_request():
+    data = request.get_json()
+    if not data or "webAddress" not in data:
+        return jsonify({"error": "Invalid request, must include 'webAddress'"}), 400
+
+    def generate():
+        yield "Processing request...\n"
+        # Here we would integrate with orchestrator/AI pipeline
+        # For now, simulate streaming output
+        yield f"Target: {data['webAddress']}\n"
+        if data.get("notes"):
+            yield f"Notes: {data['notes']}\n"
+        yield "Running AI tasks...\n"
+        yield "Completed.\n"
+
+    return Response(generate(), mimetype="text/plain")
+
+
+@app.route("/recommendations", methods=["POST"])
+def get_recommendations():
+    data = request.get_json()
+    if not data or "scan_results" not in data:
+        return jsonify({"error": "Invalid request, must include 'scan_results'"}), 400
+
+    import asyncio  # pylint: disable=import-outside-toplevel
+
+    recommendations = asyncio.run(
+        recommendation_engine.generate_recommendations(data["scan_results"])
+    )
+    return jsonify(recommendations)
 
 
 if __name__ == "__main__":
