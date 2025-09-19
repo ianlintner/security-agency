@@ -9,12 +9,24 @@ orchestrator = Orchestrator()
 @app.route("/scan", methods=["POST"])
 def scan():
     data = request.get_json()
-    if not data or "target" not in data or "agents" not in data:
-        return jsonify({"error": "Invalid request, must include 'target' and 'agents'"}), 400
+    if not data or "target" not in data:
+        return jsonify({"error": "Invalid request, must include 'target'"}), 400
 
-    scan_request = ScanRequest(target=data["target"], agents=data["agents"])
+    scan_request = ScanRequest(
+        id=data.get("id", "req-1"),
+        target=data["target"],
+        requested_agents=data.get("agents", []),
+        priority=data.get("priority", 0),
+        workflow_id=data.get("workflow_id")
+    )
     results = orchestrator.run_scan(scan_request)
     return jsonify([result.__dict__ for result in results])
+
+
+@app.route("/workflow/<workflow_id>", methods=["GET"])
+def get_workflow(workflow_id):
+    # Placeholder: would fetch from storage
+    return jsonify({"workflow_id": workflow_id, "status": "active"})
 
 
 @app.route("/")
