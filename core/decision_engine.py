@@ -1,7 +1,7 @@
 from typing import List  # type: ignore
 import json
 
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai.chat_models import ChatOpenAI
 
 from core.models import AgentDecision, ScanResult, Workflow, WorkflowStep

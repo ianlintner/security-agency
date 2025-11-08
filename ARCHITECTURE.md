@@ -386,7 +386,7 @@ Input: Code, Configs, Scan Results
 │  Audit & Compliance │
 │  - Audit logs       │
 │  - Access logs      │
-│  - Compliance reports
+│  - Compliance reports│
 └─────────────────────┘
 ```
 
