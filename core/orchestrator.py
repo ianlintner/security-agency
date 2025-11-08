@@ -3,6 +3,8 @@ import asyncio
 # import random
 from typing import List
 
+# pylint: disable=too-complex
+
 from agents.nikto_agent import NiktoAgent
 from agents.nmap_agent import NmapAgent
 from agents.sqlmap_agent import SqlmapAgent
@@ -34,7 +36,7 @@ class Orchestrator:  # pylint: disable=too-few-public-methods
 
     async def run_scan_async(
         self, request: ScanRequest
-    ) -> List[ScanResult]:  # pylint: disable=too-complex, too-many-branches
+    ) -> List[ScanResult]:  # pylint: disable=too-complex,too-many-branches,too-many-statements
         """
         Asynchronous scan execution with scheduling, retries, and parallelism.
         """
