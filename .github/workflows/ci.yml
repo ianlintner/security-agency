@@ -30,6 +30,8 @@ jobs:
 
     - name: Run tests
       run: poetry run pytest --cov=.
+      env:
+        TESTING: "1"
 
     - name: Build Docker image
       run: docker build -t security-agency .

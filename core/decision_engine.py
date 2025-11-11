@@ -1,5 +1,6 @@
 from typing import List  # type: ignore
 import json
+import os
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai.chat_models import ChatOpenAI
@@ -13,7 +14,11 @@ class DecisionEngine:  # pylint: disable=too-few-public-methods
     """
 
     def __init__(self, model_name: str = "gpt-4", temperature: float = 0.2):
-        self.llm = ChatOpenAI(model_name=model_name, temperature=temperature)
+        # Only initialize LLM if not in testing mode
+        if os.getenv("TESTING", "0") == "1":
+            self.llm = None
+        else:
+            self.llm = ChatOpenAI(model_name=model_name, temperature=temperature)
 
         self.prompt = ChatPromptTemplate.from_template(
             """
@@ -35,6 +40,14 @@ class DecisionEngine:  # pylint: disable=too-few-public-methods
     def decide_next_steps(
         self, workflow: Workflow, results: List[ScanResult]
     ) -> AgentDecision:
+        # If in testing mode, return a default decision
+        if self.llm is None:
+            return AgentDecision(
+                workflow_id=workflow.id,
+                next_steps=[],
+                reasoning="Testing mode - no LLM available"
+            )
+
         scan_results_str = "\n".join(
             [f"{r.agent}: {r.status}, output={r.output}" for r in results]
         )
