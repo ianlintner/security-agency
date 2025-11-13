@@ -1,0 +1,115 @@
+name: Phase 2 Feature Request
+description: Request a new Phase 2 AI Security feature
+title: "[Phase 2] "
+labels: ["phase-2", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Phase 2 Feature Request
+        
+        Use this template to propose or track Phase 2 features from the roadmap.
+        
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: Which Phase 2 category does this feature belong to?
+      options:
+        - "1. AI-Powered Vulnerability Intelligence & Prediction"
+        - "2. Intelligent Attack Surface Management"
+        - "3. Advanced AI Decision Engine & Autonomous Response"
+        - "4. Natural Language Security Interface"
+        - "5. Threat Intelligence & Context Enrichment"
+        - "6. Security Testing & Validation"
+        - "7. Collaboration & Workflow Integration"
+        - "8. Platform & Infrastructure"
+        - "9. Security & Privacy"
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: What is the priority level for this feature?
+      options:
+        - "High"
+        - "Medium"
+        - "Low"
+    validations:
+      required: true
+      
+  - type: input
+    id: effort
+    attributes:
+      label: Estimated Effort
+      description: Estimated development time (e.g., "3-4 weeks")
+      placeholder: "3-4 weeks"
+    validations:
+      required: false
+      
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: Detailed description of the feature and its capabilities
+      placeholder: |
+        Describe what this feature does and what value it provides.
+        
+        Key Capabilities:
+        - Capability 1
+        - Capability 2
+        - Capability 3
+    validations:
+      required: true
+      
+  - type: textarea
+    id: technical
+    attributes:
+      label: Technical Implementation
+      description: High-level technical approach and technologies
+      placeholder: |
+        Technologies to use:
+        - Technology 1
+        - Technology 2
+        
+        Implementation approach:
+        1. Step 1
+        2. Step 2
+    validations:
+      required: false
+      
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: List any dependencies on other features or issues
+      placeholder: |
+        - Depends on #123
+        - Requires feature X to be completed
+    validations:
+      required: false
+      
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: What needs to be done for this feature to be considered complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Tests added
+        - [ ] Documentation updated
+    validations:
+      required: false
+      
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: |
+        Add any mockups, diagrams, or additional context here.
+    validations:
+      required: false

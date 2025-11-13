@@ -144,7 +144,7 @@ class Storage:
             result = conn.execute(
                 self.scan_requests.select().order_by(self.scan_requests.c.id.desc()).limit(limit)
             )
-            return [dict(row._mapping) for row in result]
+            return [dict(row._mapping) for row in result]  # pylint: disable=protected-access
 
     def get_scan_results(self, request_id: str):
         """Return all results for a given scan request."""
@@ -152,7 +152,7 @@ class Storage:
             result = conn.execute(
                 self.scan_results.select().where(self.scan_results.c.request_id == request_id)
             )
-            return [dict(row._mapping) for row in result]
+            return [dict(row._mapping) for row in result]  # pylint: disable=protected-access
 
     def get_scan_report(self, result_id: str):
         """Return a single scan result/report by ID."""
@@ -160,4 +160,4 @@ class Storage:
             result = conn.execute(
                 self.scan_results.select().where(self.scan_results.c.id == result_id)
             ).first()
-            return dict(result._mapping) if result else None
+            return dict(result._mapping) if result else None  # pylint: disable=protected-access

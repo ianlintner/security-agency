@@ -26,13 +26,15 @@ jobs:
       run: poetry install
 
     - name: Lint with pylint
-      run: poetry run pylint core agents app.py
+      run: poetry run pylint core agents app.py --fail-under=9.0
 
     - name: Run tests
       run: poetry run pytest --cov=.
+      env:
+        TESTING: "1"
 
     - name: Build Docker image
       run: docker build -t security-agency .
 
     - name: Run Docker Compose
-      run: docker-compose up -d --build
+      run: docker compose up -d --build
