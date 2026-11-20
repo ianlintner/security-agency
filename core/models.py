@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 
@@ -17,6 +18,7 @@ class ScanRequest:
     requested_agents: Optional[List[str]] = None
     priority: int = 0
     workflow_id: Optional[str] = None
+    execution_mode: Optional[str] = None  # local | k8s
 
 
 @dataclass
@@ -27,6 +29,35 @@ class ScanResult:
     status: str  # queued, running, completed, failed
     output: Dict[str, Any]
     analysis: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class K8sJobStatus(str, Enum):
+    """Lifecycle status for long-running scan execution in Kubernetes."""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    UNKNOWN = "unknown"
+
+
+@dataclass
+class K8sJobRecord:
+    """Persistence model for a Kubernetes Job associated with a scan request."""
+
+    id: str
+    request_id: str
+    agent: str
+    target: str
+    k8s_job_name: str
+    namespace: str
+    status: str = K8sJobStatus.PENDING.value
+    created_at: Optional[str] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    error_message: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
 
 
